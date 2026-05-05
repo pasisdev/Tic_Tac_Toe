@@ -9,7 +9,7 @@ interface
 
 uses Classes,
   CastleVectors, CastleComponentSerialize,
-  CastleUIControls, CastleControls, CastleKeysMouse;
+  CastleUIControls, CastleControls, CastleKeysMouse,CastleSoundEngine, CastleSoundBase;
 
 type
   { Main view, where most of the application logic takes place. }
@@ -22,6 +22,9 @@ type
       These fields will be automatically initialized at Start. }
     Button1:TCastleButton;
     procedure changeview(Sender: TObject);
+  private
+    TitleSound: TCastleSound;
+    ClickSound: TCastleSound;
   public
     constructor Create(AOwner: TComponent); override;
     procedure Start; override;
@@ -40,6 +43,7 @@ uses SysUtils,gameviewplay;
 
 procedure TViewStart.changeview(Sender: TObject);
 begin
+  SoundEngine.Play(ClickSound);
   container.view := viewplay;
 end;
 
@@ -47,12 +51,24 @@ constructor TViewStart.Create(AOwner: TComponent);
 begin
   inherited;
   DesignUrl := 'castle-data:/gameviewstart.castle-user-interface';
+  TitleSound := TCastleSound.Create(Self);
+  TitleSound.Url := 'castle-data:/title.wav';
+  TitleSound.Stream := true;
+  ClickSound := TCastleSound.Create(Self);
+  ClickSound.Url := 'castle-data:/click.wav';
 end;
 
 procedure TViewStart.Start;
+var
+  PlayingTitle: TCastlePlayingSound;
 begin
   inherited;
   Button1.OnClick:= @changeview;
+  PlayingTitle := TCastlePlayingSound.Create(FreeAtStop);
+  PlayingTitle.Sound := TitleSound;
+  PlayingTitle.Volume := 1.0;
+  PlayingTitle.Loop := true;
+  SoundEngine.Play(PlayingTitle);
 end;
 
 procedure TViewStart.Update(const SecondsPassed: Single; var HandleInput: Boolean);

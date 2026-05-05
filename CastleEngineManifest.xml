@@ -16,4 +16,10 @@ See https://castle-engine.io/project_manifest for documentation of this file.
       <path value="code/" />
     </search_paths>
   </compiler_options>
+
+  <icons>
+   <icon path="data/logo.ico" />
+   <icon path="data/logo.png" />
+  </icons>
+  
 </project>

@@ -3,7 +3,8 @@ unit GameViewplay;
 interface
 
 uses Classes,
-  CastleVectors, CastleUIControls, CastleControls, CastleKeysMouse;
+  CastleVectors, CastleUIControls, CastleControls, CastleKeysMouse, CastleSoundEngine,
+  CastleSoundBase;
 
 type
 
@@ -37,6 +38,11 @@ type
   private
     Button: array [1..9] of TCastleButton;
     gamestate: array[1..9] of Tplayer;
+    ClickSound: TCastleSound;
+    endsound: TCastleSound;
+    endtrack: TCastleSound;
+    EndTrackPlayer: TCastlePlayingSound;
+    GameOver: boolean;
     procedure MakeMove(Sender: TObject);
     procedure playerTurn(Sender: TObject);
     procedure playerTurn2(Sender: TObject);
@@ -64,6 +70,7 @@ var
   btn: TCastleButton;
   d: integer;
 begin
+  SoundEngine.Play(ClickSound);
   btn := Sender as TCastleButton;
   d := btn.Tag;
   if gamestate[d] = pEmpty then
@@ -71,7 +78,7 @@ begin
     if O.Checked then
     begin
       gamestate[d] := pO;
-      btn.Image.Url := 'castle-data:/O.png';
+      btn.Image.Url := 'castle-data:/o.png';
       O.Checked := False;
       X.Checked := True;
       Label1.Exists := False;
@@ -83,7 +90,7 @@ begin
     else
     begin
       gamestate[d] := pX;
-      btn.Image.Url := 'castle-data:/X.png';
+      btn.Image.Url := 'castle-data:/x.png';
       O.Checked := True;
       X.Checked := False;
       Label1.Exists := False;
@@ -93,6 +100,7 @@ begin
       Label2.Caption := 'Game is in Progress';
     end;
   end;
+  checkwinner;
 end;
 
 procedure TViewplay.playerTurn(Sender: TObject);
@@ -100,6 +108,7 @@ begin
   if not Label1.Exists then
   else
   begin
+    SoundEngine.Play(ClickSound);
     if O.Checked then
     begin
       O.Checked := True;
@@ -118,6 +127,7 @@ begin
   if not Label1.Exists then
   else
   begin
+    SoundEngine.Play(ClickSound);
     if X.Checked then
     begin
       X.Checked := True;
@@ -135,6 +145,8 @@ procedure TViewplay.checkwinner;
 var
   z: integer;
 begin
+  if GameOver then Exit;
+
   if ((gamestate[1] = pO) and (gamestate[2] = pO) and (gamestate[3] = pO)) or
     ((gamestate[4] = pO) and (gamestate[5] = pO) and (gamestate[6] = pO)) or
     ((gamestate[7] = pO) and (gamestate[8] = pO) and (gamestate[9] = pO)) or
@@ -144,6 +156,13 @@ begin
     ((gamestate[1] = pO) and (gamestate[5] = pO) and (gamestate[9] = pO)) or
     ((gamestate[3] = pO) and (gamestate[5] = pO) and (gamestate[7] = pO)) then
   begin
+    GameOver := True;
+    SoundEngine.Play(endSound);
+    EndTrackPlayer := TCastlePlayingSound.Create(FreeAtStop);
+    EndTrackPlayer.Sound := endtrack;
+    EndTrackPlayer.Volume := 1.0;
+    EndTrackPlayer.Loop := True;
+    SoundEngine.Play(EndTrackPlayer);
     label2.Caption := 'Game Over. O Wins';
     for z := 1 to 9 do
     begin
@@ -159,7 +178,33 @@ begin
     ((gamestate[1] = pX) and (gamestate[5] = pX) and (gamestate[9] = pX)) or
     ((gamestate[3] = pX) and (gamestate[5] = pX) and (gamestate[7] = pX)) then
   begin
+    GameOver := True;
+    SoundEngine.Play(endSound);
+    EndTrackPlayer := TCastlePlayingSound.Create(FreeAtStop);
+    EndTrackPlayer.Sound := endtrack;
+    EndTrackPlayer.Volume := 1.0;
+    EndTrackPlayer.Loop := True;
+    SoundEngine.Play(EndTrackPlayer);
     label2.Caption := 'Game Over. X Wins';
+    for z := 1 to 9 do
+    begin
+      button[z].Enabled := False;
+    end;
+  end
+  else if (not (gamestate[1] = pEmpty)) and (not (gamestate[2] = pEmpty)) and
+    (not (gamestate[3] = pEmpty)) and (not (gamestate[4] = pEmpty)) and
+    (not (gamestate[5] = pEmpty)) and (not (gamestate[6] = pEmpty)) and
+    (not (gamestate[7] = pEmpty)) and (not (gamestate[8] = pEmpty)) and
+    (not (gamestate[9] = pEmpty)) then
+  begin
+    GameOver := True;
+    SoundEngine.Play(endSound);
+    EndTrackPlayer := TCastlePlayingSound.Create(FreeAtStop);
+    EndTrackPlayer.Sound := endtrack;
+    EndTrackPlayer.Volume := 1.0;
+    EndTrackPlayer.Loop := True;
+    SoundEngine.Play(EndTrackPlayer);
+    label2.Caption := 'Game Over. Its a draw';
     for z := 1 to 9 do
     begin
       button[z].Enabled := False;
@@ -167,15 +212,25 @@ begin
   end;
 end;
 
+
 procedure TViewplay.newgame(Sender: TObject);
 var
   z: integer;
 begin
+  SoundEngine.Play(ClickSound);
+
+  if Assigned(EndTrackPlayer) then
+  begin
+    EndTrackPlayer.Stop;
+    EndTrackPlayer := nil;
+  end;
+
+  GameOver := False;
   X.Checked := True;
   O.Checked := False;
   for i := 1 to 9 do
   begin
-    button[i].image.url := 'castle-data:/Blank.png';
+    button[i].image.url := 'castle-data:/blank.png';
   end;
   Label1.Exists := True;
   Label1.Caption := 'Who Moves First?';
@@ -185,7 +240,7 @@ begin
   for z := 1 to 9 do
   begin
     gamestate[z] := pEmpty;
-    button[z].enabled := true;
+    button[z].Enabled := True;
   end;
 end;
 
@@ -199,6 +254,13 @@ procedure TViewplay.Start;
 begin
   inherited;
   { Executed once when view starts. }
+  GameOver := False;
+  endtrack := TCastleSound.Create(Self);
+  endtrack.Url := 'castle-data:/endmusic.wav';
+  ClickSound := TCastleSound.Create(Self);
+  ClickSound.Url := 'castle-data:/click.wav';
+  endSound := TCastleSound.Create(Self);
+  endSound.Url := 'castle-data:/gameend.wav';
   for i := 1 to 9 do   //assign button
   begin
     Button[i] := DesignedComponent('button' + IntToStr(i)) as TCastleButton;
@@ -221,7 +283,7 @@ procedure TViewplay.Update(const SecondsPassed: single; var HandleInput: boolean
 begin
   inherited;
   { Executed every frame.}
-  checkwinner;
+
 end;
 
 end.
